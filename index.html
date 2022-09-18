@@ -5,8 +5,40 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link rel="stylesheet" href="./style/reset.css">
+    <link rel="stylesheet" href="./style/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>welcome</h1>
+
+    <div class="container">
+        <!-- search -->
+        <div class="data-input">
+            <h1 class="title">Search your pokemon</h1>
+            <input type="text" class="inputVal" id="inputVal" placeholder="Pokemon #ID">
+            <button type="button" class="submit" id="submit">search pokemon</button>
+        </div>
+
+        <div class="result-container">
+            <!-- view result: success -->
+            <div class="result-box success">
+                <div class="pokemon-img">
+                    <img src="" alt="pokemon image">
+                </div>
+                <span class="pokemon-id"></span>
+                <span class="pokemon-name"></span>
+            </div>
+
+            <!-- view result: loading -->
+            <div class="result-box pending"><span>Loading</span></div>
+
+            <!-- view result: loading -->
+            <div class="result-box no-data">No data</div>
+        </div>
+    </div>
+
+    <script src="./script/index.js"></script>
 </body>
 </html>
