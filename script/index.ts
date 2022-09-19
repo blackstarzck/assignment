@@ -1,57 +1,110 @@
 const submitBtn = document.getElementById("submit") as HTMLElement;
 const inputVal = document.getElementById("inputVal") as HTMLInputElement;
+const evArea = document.querySelector(".ev-wrapper") as HTMLElement;
 
+interface Spicies {
+    name: string,
+    id: number,
+    ev_chain_url: string
+}
 
-const submit = async () => {
+interface Evolution {
+    ev_chain: Array<object>,
+}
+
+interface Pokemon {
+    height: number,
+    weight: number,
+    abilities: Array<object>
+    img: string
+}
+
+const submit = async () => {    
     const pokemonId: string = inputVal.value;
-    const resultA: object = await searchPokemon(pokemonId);
-    const resultB: object = await searchEvolutionChain(pokemonId);
-    let result: object = {};
+    const result = await getPokemonDatas(pokemonId);
+    result != "error" ? setPokemonData(result) : setResutStatus("no-data");
 
-    if(resultA) result = { ...resultA }
-    if(resultA && resultB) result = { ...resultA, ...resultB }
-
-    setPokemonData(result);
-
-    console.log("resultA: ", resultA, typeof resultA);
-    console.log("resultB: ", resultB, typeof resultB);
+    console.log(result)
 }
 
-const searchPokemon = (id: string): object => {
-    setResutStatus("pending");
-    return new Promise((resolve, reject) => {
-        fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)
-        .then((response) => response.json())
-        .then((data) => resolve(data))
-        .catch((error) => setResutStatus("no-data"));
-    });
+const searchSpecies = async (id: string): Promise<Spicies> => {
+    const speciesResp = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+    const result = await speciesResp.json();
+    const data = {
+        name: result.name,
+        id: result.id,
+        ev_chain_url: result.evolution_chain.url
+    };
+    return data; 
 }
 
-const searchEvolutionChain = (id: string): object => {
+const searchEvolutionDetails = async (url: string): Promise<Evolution> => {
+    const evResp = await fetch(url);
+    const { chain } = await evResp.json();
+    const newStr = (str: string) => str.replace("https://pokeapi.co/api/v2/pokemon-species/", "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/").replace(/.$/, ".png");
+    const arr = [];
+
+    if(chain.evolves_to.length > 0){ // 2
+        arr.push({ name: chain.species.name, img: newStr(chain.species.url) }); // 1
+        arr.push({ name: chain.evolves_to[0].species.name, img: newStr(chain.evolves_to[0].species.url) });
+        if(chain.evolves_to[0].evolves_to.length > 0){ // 3
+            arr.push({ name: chain.evolves_to[0].evolves_to[0].species.name, img: newStr(chain.evolves_to[0].evolves_to[0].species.url) });
+        }
+    }
+    return { ev_chain: arr };
+}
+
+const searchImage = async (id: string): Promise<Pokemon> => {
+    const imgResp = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    const result = await imgResp.json();
+    const data = {
+        height: result.height,
+        weight: result.weight,
+        abilities: result.abilities,
+        img: result.sprites.other["official-artwork"].front_default
+    }
+    return data;
+}
+
+const getPokemonDatas = async (id: string) => {
     setResutStatus("pending");
-    return new Promise((resolve, reject) => {
-        fetch(`https://pokeapi.co/api/v2/evolution-chain/${id}`)
-        .then((response) => response.json())
-        .then((data) => resolve(data))
-        .catch((error) => setResutStatus("no-data"));
-    });
+    try{
+        const species = await searchSpecies(id);
+        const ev = await searchEvolutionDetails(species.ev_chain_url);
+        const img = await searchImage(id);
+        const data = await { ...species, ...ev, ...img };
+        return data;
+    }catch(e){
+        console.log("error: ", e);
+        setResutStatus("no-data");
+        return "error";
+    }
 }
 
 const setPokemonData = (data: any): void => {
     const pokemonId = document.querySelector(".pokemon-id") as HTMLElement;
     const pokemonImg = document.querySelector(".pokemon-img img") as HTMLImageElement;
     const pokemonName = document.querySelector(".pokemon-name") as HTMLElement;
+    let elem = "";
 
-    pokemonId.innerText = `#${data.id}`;
-    pokemonImg.src = data.sprites.other["official-artwork"].front_default;
-    pokemonName.innerText = data.name;
-
+    if(data.ev_chain?.length > 0){
+        data.ev_chain.forEach((item: { img: string, name: string }) => elem += `<li class="ev-list"><div class="img-area"><img src="${item.img}" alt=""></div><span class="ev-name">${item.name}</span></li>`);
+    }else{
+        elem = "This pokemon has no evolution data";
+    }
+    pokemonImg.src = data.img;
+    pokemonImg.onload = () => {
+        pokemonId.innerText = `#${data.id}`;
+        pokemonName.innerText = data.name;
+        evArea.innerHTML = elem;
+    }
+    
     setResutStatus("success");
 }
 
-const successBox = document.querySelector(".result-box.success") as HTMLElement;
-const loadingBox = document.querySelector(".result-box.pending") as HTMLElement;
-const noDataBox = document.querySelector(".result-box.no-data") as HTMLElement;
+let successBox = document.querySelector(".result-box.success") as HTMLElement;
+let loadingBox = document.querySelector(".result-box.pending") as HTMLElement;
+let noDataBox = document.querySelector(".result-box.no-data") as HTMLElement;
 
 
 const setResutStatus = (status: string): void => {
